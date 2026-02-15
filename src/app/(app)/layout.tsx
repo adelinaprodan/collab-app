@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
@@ -23,19 +22,34 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
+function getProjectIdFromPath(pathname: string | null): string | null {
+  if (!pathname) return null;
+  // matches /projects/<id> and /projects/<id>/anything
+  const m = pathname.match(/^\/projects\/([^\/]+)/);
+  return m?.[1] ?? null;
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
 
+  const projectId = useMemo(() => getProjectIdFromPath(pathname), [pathname]);
+  const inProject = Boolean(projectId);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!token && pathname !== "/login" && pathname !== "/register") {
       router.replace("/login");
       return;
     }
     setChecking(false);
-  }, [router]);
+  }, [router, pathname]);
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    router.push("/login");
+  }
 
   if (checking) {
     return (
@@ -49,18 +63,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  function handleLogout() {
-    localStorage.removeItem("token");
-    router.push("/login");
-  }
-
-  const title =
-    pathname === "/dashboard"
-      ? "Dashboard"
-      : pathname?.startsWith("/projects")
-        ? "Projects"
-        : "Workspace";
-
   return (
     <div className="min-h-screen bg-[rgb(var(--bg))]">
       <div className="mx-auto max-w-7xl px-4 py-6">
@@ -72,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 StudentCollab
               </div>
               <div className="mt-1 text-xs text-[rgb(var(--subtext))]">
-                Projects · Tasks · Calendar
+                Projects · Tasks · Notes · Files
               </div>
             </div>
 
@@ -80,6 +82,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <NavLink href="/dashboard" label="Dashboard" />
               <NavLink href="/projects" label="Projects" />
             </nav>
+
+            {/* Project navigation appears only inside /projects/[id] */}
+            {inProject ? (
+              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
+                <div className="px-2 pb-2 text-xs font-semibold text-[rgb(var(--subtext))]">
+                  Project
+                </div>
+                <div className="space-y-1">
+                  <NavLink href={`/projects/${projectId}`} label="Overview" />
+                  <NavLink
+                    href={`/projects/${projectId}/tasks`}
+                    label="Tasks"
+                  />
+                  <NavLink
+                    href={`/projects/${projectId}/notes`}
+                    label="Notes"
+                  />
+                
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
               <button

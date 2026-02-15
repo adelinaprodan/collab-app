@@ -11,6 +11,8 @@ const NoteSchema = new Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
+      maxlength: 200,
     },
 
     content: {
@@ -18,11 +20,34 @@ const NoteSchema = new Schema(
       default: "",
     },
 
+    // Backwards compatibility (your old single-link field)
     linkedTask: {
       type: Schema.Types.ObjectId,
       ref: "Task",
       default: null,
     },
+
+    // New: proper linking (many-to-many style)
+    linkedTasks: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Task",
+      },
+    ],
+
+    linkedFiles: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "ProjectFile",
+      },
+    ],
+
+    linkedNotes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Note",
+      },
+    ],
 
     createdBy: {
       type: Schema.Types.ObjectId,
